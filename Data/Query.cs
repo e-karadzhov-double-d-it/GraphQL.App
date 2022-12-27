@@ -1,42 +1,30 @@
-﻿using GraphQL.App.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using GraphQL.App.Interfaces;
+using GraphQL.App.Models;
 
 namespace GraphQL.App.Data
 {
     public class Query
     {
+        [UseProjection]
+        [UseFiltering]
+        [UseSorting]
         [GraphQLName("GetSuperHeroes")]
         [GraphQLDescription("Get collection")]
-        public async Task<IQueryable<Superhero>> GetSuperheroes(string? heroId, [Service] ApplicationDbContext context)
+        public async Task<IQueryable<Superhero>> GetSuperheroes(string? heroId, [Service] ISuperheroRepository context)
         {
-            var heroes = new List<Superhero>();
             if (heroId != null)
             {
-                var hero = await context.Superheroes.FirstOrDefaultAsync(x => x.Id.ToString() == heroId);
-                heroes.Add(hero);
-            }
-            else
-            {
-                heroes.AddRange(context.Superheroes);
+                return (IQueryable<Superhero>)await context.GetSuperheroeByIdAsync(heroId);
             }
 
-            return heroes.AsQueryable();
+            return await context.GetSuperheroesAsync();
         }
 
-        [GraphQLName("PostSuperHeroes")]
-        [GraphQLDescription("Post method")]
-        public async Task<Superhero> PostSuperheroes(string name, string description, double height, [Service] ApplicationDbContext context)
+        [GraphQLName("CreateSuperHero")]
+        [GraphQLDescription("Create new Super Hero")]
+        public async Task<Superhero> PostSuperheroes(Superhero superhero, [Service] ISuperheroRepository context)
         {
-            var hero = new Superhero()
-            {
-                Name = name,
-                Description = description,
-                Height = height,
-            };
-
-            await context.Superheroes.AddAsync(hero);
-            await context.SaveChangesAsync();
-            return await context.Superheroes.AsQueryable().FirstAsync(x => x.Id == hero.Id);
+            return await context.CreateNewSuperherAsync(superhero);
         }
     }
 }
